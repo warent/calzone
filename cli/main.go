@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/rpc"
 
 	"github.com/docker/docker/api/types"
@@ -17,8 +18,12 @@ const ADDR = "127.0.0.1"
 const PORT = 61895
 
 func main() {
-	_, err := rpc.Dial("tcp", fmt.Sprintf("%v:%v", ADDR, PORT))
+	rpcConn, err := rpc.Dial("tcp", fmt.Sprintf("%v:%v", ADDR, PORT))
 	if err == nil {
+		if err != nil {
+			log.Fatal("arith error:", err)
+		}
+		rpcConn.Close()
 		cmd.Execute()
 		return
 	}

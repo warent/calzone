@@ -1,42 +1,43 @@
 package main
 
 import (
-	"errors"
+	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/rpc"
+
+	"github.com/google/go-github/v45/github"
+	"github.com/warent/calzone/service/structures/args"
 )
 
-type Args struct {
-	A, B int
-}
+type Calzone int
 
-type Quotient struct {
-	Quo, Rem int
-}
+func (t *Calzone) Install(InstallArgs *args.Install, response *int) error {
 
-type Arith int
-
-func (t *Arith) Multiply(args *Args, reply *int) error {
-	*reply = args.A * args.B
-	return nil
-}
-
-func (t *Arith) Divide(args *Args, quo *Quotient) error {
-	if args.B == 0 {
-		return errors.New("divide by zero")
+	// list public repositories for org "github"
+	client := github.NewClient(nil)
+	_, directory, _, err := client.Repositories.GetContents(context.Background(), "warent", "calzone-repository", InstallArgs.Calzone, nil)
+	if err != nil {
+		return err
 	}
-	quo.Quo = args.A / args.B
-	quo.Rem = args.A % args.B
+
+	for _, file := range directory {
+		fmt.Println(*file.DownloadURL)
+	}
 	return nil
 }
 
 func main() {
-	arith := new(Arith)
-	rpc.Register(arith)
-	l, e := net.Listen("tcp", ":61895")
-	if e != nil {
-		log.Fatal("listen error:", e)
+	calzone := new(Calzone)
+	server := rpc.NewServer()
+	err := server.RegisterName("Calzone", calzone)
+	if err != nil {
+		log.Fatal("listen error:", err)
 	}
-	rpc.Accept(l)
+	l, err := net.Listen("tcp", ":61895")
+	if err != nil {
+		log.Fatal("listen error:", err)
+	}
+	server.Accept(l)
 }

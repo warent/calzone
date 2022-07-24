@@ -4,15 +4,16 @@ go 1.18
 
 require (
 	github.com/docker/docker v20.10.17+incompatible
+	github.com/docker/go-connections v0.4.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
+	github.com/warent/calzone/service v0.0.0
 )
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
-	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -41,3 +42,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.0 // indirect
 	gotest.tools/v3 v3.3.0 // indirect
 )
+
+replace github.com/warent/calzone/service v0.0.0 => ../service
