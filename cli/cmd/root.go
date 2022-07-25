@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/rpc"
 	"os"
+	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -94,7 +95,7 @@ var installCmd = &cobra.Command{
 			if userParam == "" {
 				userParam = param.Default
 			}
-			completeArgs.Parameters[key] = userParam
+			completeArgs.Parameters[key] = strings.Trim(userParam, "\n ")
 		}
 		fmt.Println("\n## Wrapping up\n")
 		fmt.Printf("Calzone is cooking up %s...", calzone)

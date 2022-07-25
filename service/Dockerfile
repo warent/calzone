@@ -24,12 +24,18 @@ RUN tar -C /usr/local -xzf go1.18.4.linux-amd64.tar.gz
 
 ENV PATH "$PATH:/usr/local/go/bin"
 
+RUN service docker start
+
+WORKDIR /mnt/data
 WORKDIR /calzone
 
 COPY . .
 
 RUN go build .
 
+RUN useradd -rm -d /home/cali -s /bin/bash -g docker -G sudo -u 1001 cali
+RUN usermod -aG docker cali
+
 EXPOSE 61895
 
-CMD ./service
+CMD service docker start && su -c "/calzone/service" -s /bin/sh cali

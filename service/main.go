@@ -1,14 +1,21 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"net/rpc"
+	"os"
+	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/google/go-github/v45/github"
 	"github.com/warent/calzone/service/structures"
@@ -72,14 +79,59 @@ func (t *Calzone) BeginInstall(BeginInstallArgs *structures.BeginInstallArgs, Be
 	resp.Body.Close()
 	yamlCache[BeginInstallArgs.Calzone] = string(data)
 
-	// tmpl, err := template.New("test").Parse("{{.Count}} items are made of {{.Material}}")
-
 	return nil
 }
 
 func (t *Calzone) CompleteInstall(CompleteInstallArgs *structures.CompleteInstallArgs, CompleteInstallResponse *structures.CompleteInstallResponse) error {
-	fmt.Println("We will complete", yamlCache[CompleteInstallArgs.Calzone])
-	fmt.Printf("%+v\n", *CompleteInstallArgs)
+	configData := yamlCache[CompleteInstallArgs.Calzone]
+	config := structures.CalzoneConfig{}
+	tmpl, err := template.New("config").Parse(configData)
+	if err != nil {
+		return err
+	}
+
+	buf := new(bytes.Buffer)
+	err = tmpl.Execute(buf, *CompleteInstallArgs)
+	if err != nil {
+		return err
+	}
+
+	configParsed := buf.Bytes()
+
+	err = yaml.Unmarshal(configParsed, &config)
+	if err != nil {
+		return err
+	}
+
+	reader, writer := io.Pipe()
+	cmdCtx, cmdDone := context.WithCancel(context.Background())
+
+	scannerStopped := make(chan struct{})
+	go func() {
+		defer close(scannerStopped)
+
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			fmt.Printf("SCANNED LINE %s\n", scanner.Text())
+		}
+	}()
+
+	safeId := strings.ReplaceAll(CompleteInstallArgs.Calzone, "/", "--")
+
+	os.Mkdir(fmt.Sprintf("/mnt/data/%s", safeId), 0755)
+
+	cmd := exec.Command("bash", "-c", fmt.Sprintf("minikube start --driver=docker -p %s --mount-string=\"/mnt/data/%s:/mnt/data\" --mount --memory=%v --cpus=%v -o json", safeId, safeId, config.System.Memory, config.System.Cpus))
+	cmd.Stdout = writer
+	_ = cmd.Start()
+	go func() {
+		_ = cmd.Wait()
+		cmdDone()
+		writer.Close()
+	}()
+	<-cmdCtx.Done()
+
+	<-scannerStopped
+
 	CompleteInstallResponse.Port = 30000
 	return nil
 }

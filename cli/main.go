@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/rpc"
+	"os"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/warent/calzone/cli/v2/cmd"
 )
@@ -29,6 +32,10 @@ func main() {
 	}
 
 	fmt.Println("It looks like Calzone is not running on your machine. Setting it up now...")
+
+	home, err := homedir.Dir()
+	os.Mkdir(home+"/.calzone", 0755)
+	os.Mkdir(home+"/.calzone/data", 0755)
 
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -56,6 +63,18 @@ func main() {
 					HostIP:   "127.0.0.1",
 					HostPort: "61895",
 				},
+			},
+		},
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeBind,
+				Source: home + "/.calzone/data",
+				Target: "/mnt/data",
+			},
+			{
+				Type:   mount.TypeBind,
+				Source: "/var/run/docker.sock",
+				Target: "/var/run/docker.sock",
 			},
 		},
 	}

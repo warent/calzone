@@ -6,6 +6,27 @@ type RepositoryParameter struct {
 	Default     string
 }
 
+type CalzoneConfigSystem struct {
+	Memory int
+	Cpus   int
+}
+
+type CalzoneConfigVolume struct {
+	Size string
+}
+
+type CalzoneConfigDeployment struct {
+	Public  bool
+	Image   string
+	Volumes []string
+}
+
+type CalzoneConfig struct {
+	System      CalzoneConfigSystem
+	Volumes     map[string]CalzoneConfigVolume
+	Deployments map[string]CalzoneConfigDeployment
+}
+
 // BeginInstall
 type BeginInstallArgs struct {
 	Calzone string
