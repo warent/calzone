@@ -57,6 +57,7 @@ func main() {
 	}
 
 	hostConfig := &container.HostConfig{
+		Runtime: "sysbox-runc",
 		PortBindings: nat.PortMap{
 			"61895/tcp": []nat.PortBinding{
 				{
@@ -70,11 +71,6 @@ func main() {
 				Type:   mount.TypeBind,
 				Source: home + "/.calzone/data",
 				Target: "/mnt/data",
-			},
-			{
-				Type:   mount.TypeBind,
-				Source: "/var/run/docker.sock",
-				Target: "/var/run/docker.sock",
 			},
 		},
 	}
