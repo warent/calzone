@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net/rpc"
@@ -9,7 +10,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/warent/calzone/service/structures/args"
+	"github.com/warent/calzone/service/structures"
 )
 
 const ADDR = "127.0.0.1"
@@ -55,19 +56,55 @@ var versionCmd = &cobra.Command{
 var installCmd = &cobra.Command{
 	Use: "install",
 	Run: func(cmd *cobra.Command, cobraArgs []string) {
+		if len(cobraArgs) != 1 {
+			fmt.Println("Unknown arguments. Please supply the calzone package name.")
+			return
+		}
+		calzone := cobraArgs[0]
+		fmt.Println("\n# Calzone\n")
+		fmt.Println("Starting up!")
 		rpcConn, err := rpc.Dial("tcp", fmt.Sprintf("%v:%v", ADDR, PORT))
 		if err != nil {
 			fmt.Println("Error connecting to Calzone")
 			return
 		}
 		defer rpcConn.Close()
-		rpcArgs := &args.Install{
-			Calzone: cobraArgs[0],
+		rpcArgs := &structures.BeginInstallArgs{
+			Calzone: calzone,
 		}
-		err = rpcConn.Call("Calzone.Install", rpcArgs, nil)
+		resp := structures.BeginInstallResponse{}
+		fmt.Printf("Fetching %s... ", calzone)
+		err = rpcConn.Call("Calzone.BeginInstall", rpcArgs, &resp)
 		if err != nil {
 			log.Fatal("arith error:", err)
 		}
+		completeArgs := &structures.CompleteInstallArgs{
+			Calzone:    calzone,
+			Parameters: map[string]string{},
+		}
+		fmt.Println("Got it!")
+		if len(resp.Parameters) > 0 {
+			fmt.Println("This calzone needs some more information; please supply the parameters below.")
+			fmt.Printf("\n## %s\n\n", calzone)
+		}
+		for key, param := range resp.Parameters {
+			fmt.Printf("%s (default=%s): ", param.Description, param.Default)
+			reader := bufio.NewReader(os.Stdin)
+			userParam, _ := reader.ReadString('\n')
+			if userParam == "" {
+				userParam = param.Default
+			}
+			completeArgs.Parameters[key] = userParam
+		}
+		fmt.Println("\n## Wrapping up\n")
+		fmt.Printf("Calzone is cooking up %s...", calzone)
+		completeResp := structures.CompleteInstallResponse{}
+		err = rpcConn.Call("Calzone.CompleteInstall", completeArgs, &completeResp)
+		if err != nil {
+			log.Fatal("arith error:", err)
+		}
+		fmt.Println("\n\n## Done!\n")
+		fmt.Printf("%s is ready on 127.0.0.1:%v", calzone, completeResp.Port)
 	},
 }
 

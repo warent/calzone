@@ -3,28 +3,84 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 	"net/rpc"
+	"path"
 
 	"github.com/google/go-github/v45/github"
-	"github.com/warent/calzone/service/structures/args"
+	"github.com/warent/calzone/service/structures"
+	"gopkg.in/yaml.v3"
 )
+
+var yamlCache map[string]string = map[string]string{}
 
 type Calzone int
 
-func (t *Calzone) Install(InstallArgs *args.Install, response *int) error {
+func (t *Calzone) BeginInstall(BeginInstallArgs *structures.BeginInstallArgs, BeginInstallResponse *structures.BeginInstallResponse) error {
 
 	// list public repositories for org "github"
 	client := github.NewClient(nil)
-	_, directory, _, err := client.Repositories.GetContents(context.Background(), "warent", "calzone-repository", InstallArgs.Calzone, nil)
+	_, directory, _, err := client.Repositories.GetContents(context.Background(), "warent", "calzone-repository", BeginInstallArgs.Calzone, nil)
 	if err != nil {
 		return err
 	}
 
+	files := map[string]string{}
+
 	for _, file := range directory {
-		fmt.Println(*file.DownloadURL)
+		files[path.Base(*file.DownloadURL)] = *file.DownloadURL
 	}
+
+	if _, ok := files["parameters.yaml"]; ok {
+		resp, err := http.Get(files["parameters.yaml"])
+		if err != nil {
+			return fmt.Errorf("GET error: %v", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("Status error: %v", resp.StatusCode)
+		}
+
+		data, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("Read body: %v", err)
+		}
+		resp.Body.Close()
+
+		err = yaml.Unmarshal(data, BeginInstallResponse)
+		if err != nil {
+			return err
+		}
+	}
+
+	resp, err := http.Get(files["calzone.yaml"])
+	if err != nil {
+		return fmt.Errorf("GET error: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Status error: %v", resp.StatusCode)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("Read body: %v", err)
+	}
+	resp.Body.Close()
+	yamlCache[BeginInstallArgs.Calzone] = string(data)
+
+	// tmpl, err := template.New("test").Parse("{{.Count}} items are made of {{.Material}}")
+
+	return nil
+}
+
+func (t *Calzone) CompleteInstall(CompleteInstallArgs *structures.CompleteInstallArgs, CompleteInstallResponse *structures.CompleteInstallResponse) error {
+	fmt.Println("We will complete", yamlCache[CompleteInstallArgs.Calzone])
+	fmt.Printf("%+v\n", *CompleteInstallArgs)
+	CompleteInstallResponse.Port = 30000
 	return nil
 }
 
