@@ -16,9 +16,6 @@ RUN echo \
 RUN apt-get update
 RUN apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
-RUN curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-RUN install minikube-linux-amd64 /usr/local/bin/minikube
-
 RUN curl -LO https://go.dev/dl/go1.18.4.linux-amd64.tar.gz
 RUN tar -C /usr/local -xzf go1.18.4.linux-amd64.tar.gz
 

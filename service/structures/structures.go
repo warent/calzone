@@ -43,5 +43,6 @@ type CompleteInstallArgs struct {
 }
 
 type CompleteInstallResponse struct {
-	Port int
+	Port         int
+	MessageQueue []string
 }

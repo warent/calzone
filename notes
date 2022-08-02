@@ -1,0 +1,15 @@
+https://docs.docker.com/network/bridge/#connect-a-container-to-a-user-defined-bridge
+
+Define another Docker container that behaves as a "proxy" layer with ports that get forwarded
+Every time a new Calzone is installed, recreate the proxy machine with newly forwarded ports
+
+Proxy machine is on the same bridge network as Calzone
+Some kind of load balancer with all ports forwarded to the proxies to avoid downtime?
+
+ALTERNATIVE
+
+https://stackoverflow.com/questions/27937185/assign-static-ip-to-docker-container
+Create a static IP address to assign to the docker container
+Then open up all ports from 30000 - 40000
+
+https://stackoverflow.com/questions/28717464/docker-expose-all-ports-or-range-of-ports-from-7000-to-8000

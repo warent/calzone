@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"net/rpc"
 	"os"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/mitchellh/go-homedir"
@@ -17,16 +16,29 @@ import (
 	"github.com/warent/calzone/cli/v2/cmd"
 )
 
-const ADDR = "127.0.0.1"
+const ADDR = "192.168.52.1"
 const PORT = 61895
 
 func main() {
-	rpcConn, err := rpc.Dial("tcp", fmt.Sprintf("%v:%v", ADDR, PORT))
-	if err == nil {
-		if err != nil {
-			log.Fatal("arith error:", err)
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{})
+	var running bool
+outer:
+	for _, container := range containers {
+		for _, name := range container.Names {
+			if name == "/calzone-service" {
+				running = true
+				break outer
+			}
 		}
-		rpcConn.Close()
+	}
+	if running {
+		cli.Close()
 		cmd.Execute()
 		return
 	}
@@ -37,35 +49,35 @@ func main() {
 	os.Mkdir(home+"/.calzone", 0755)
 	os.Mkdir(home+"/.calzone/data", 0755)
 
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	netwk, err := cli.NetworkCreate(ctx, "calzone-net", types.NetworkCreate{
+		CheckDuplicate: true,
+		IPAM: &network.IPAM{
+			Config: []network.IPAMConfig{{
+				Subnet:  "192.168.52.0/24",
+				Gateway: "192.168.52.254",
+			}},
+		},
+	})
 	if err != nil {
 		panic(err)
 	}
 
-	// reader, err := cli.ImagePull(ctx, "docker.io/library/alpine", types.ImagePullOptions{})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// io.Copy(os.Stdout, reader)
+	svcPort, _ := nat.NewPort("tcp", "61895")
+	portSet := nat.PortSet{
+		svcPort: struct{}{},
+	}
+	for i := 30000; i <= 40000; i++ {
+		appPort, _ := nat.NewPort("tcp", fmt.Sprintf("%v", i))
+		portSet[appPort] = struct{}{}
+	}
 
 	config := &container.Config{
-		Image: "calzone-service:latest",
-		ExposedPorts: nat.PortSet{
-			"61895/tcp": struct{}{},
-		},
+		Image:        "calzone-service:latest",
+		ExposedPorts: portSet,
 	}
 
 	hostConfig := &container.HostConfig{
 		Runtime: "sysbox-runc",
-		PortBindings: nat.PortMap{
-			"61895/tcp": []nat.PortBinding{
-				{
-					HostIP:   "127.0.0.1",
-					HostPort: "61895",
-				},
-			},
-		},
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
@@ -75,7 +87,12 @@ func main() {
 		},
 	}
 
-	resp, err := cli.ContainerCreate(ctx, config, hostConfig, nil, nil, "")
+	resp, err := cli.ContainerCreate(ctx, config, hostConfig, nil, nil, "calzone-service")
+	if err != nil {
+		panic(err)
+	}
+
+	err = cli.NetworkConnect(ctx, netwk.ID, resp.ID, nil)
 	if err != nil {
 		panic(err)
 	}
