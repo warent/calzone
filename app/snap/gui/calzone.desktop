@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Calzone
+Comment=Delicious app bundles
+Exec=calzone 
+Icon=${SNAP}/meta/gui/calzone.png # replace name to your app name
+Terminal=false
+Type=Application
+Categories=Education; #adjust accordingly your snap category

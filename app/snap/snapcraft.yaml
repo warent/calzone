@@ -1,0 +1,28 @@
+name: calzone
+version: 0.1.0
+summary: Calzone
+description: Delicious app bundles
+
+confinement: strict
+base: core18
+grade: stable
+
+slots:
+  dbus-calzone: # adjust accordingly to your app name
+    interface: dbus
+    bus: session
+    name: technology.koru.calzone # adjust accordingly to your app name and
+    
+apps:
+  calzone:
+    command: calzone
+    extensions: [flutter-master] # Where "master" defines which Flutter channel to use for the build
+    plugs:
+    - network
+    slots:
+      - dbus-calzone
+parts:
+  calzone:
+    source: .
+    plugin: flutter
+    flutter-target: lib/main.dart # The main entry-point file of the application
