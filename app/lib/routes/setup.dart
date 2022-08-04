@@ -48,27 +48,6 @@ class _RouteSetupState extends State<RouteSetup> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // actions: [
-        //   Container(
-        //     child: new ButtonBar(
-        //       mainAxisSize: MainAxisSize
-        //           .min, // this will take space as minimum as posible(to center)
-        //       children: <Widget>[
-        //         new IconButton(
-        //           tooltip: "Settings",
-        //           iconSize: 16,
-        //           icon: Icon(YaruIcons.settings),
-        //           onPressed: () => print("Hello world"),
-        //         ),
-        //       ],
-        //     ),
-        //   ),
-        // ],
-        // Here we take the value from the RouteSetup object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
       body: Center(
           // Center is a layout widget. It takes a single child and positions it
           // in the middle of the parent.
@@ -95,7 +74,7 @@ class _RouteSetupState extends State<RouteSetup> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                       Container(
-                          padding: EdgeInsets.only(bottom: 32),
+                          padding: EdgeInsets.only(bottom: 16),
                           child: Text("Remote Calzone Connection")),
                       Container(
                         padding: EdgeInsets.only(bottom: 16),
@@ -108,6 +87,7 @@ class _RouteSetupState extends State<RouteSetup> {
                       ),
                       Container(
                         width: 200,
+                        padding: EdgeInsets.only(bottom: 16),
                         child: TextField(
                           obscureText: true,
                           decoration: InputDecoration(
@@ -115,6 +95,11 @@ class _RouteSetupState extends State<RouteSetup> {
                               label: Text("Password")),
                         ),
                       ),
+                      Container(
+                          width: 200,
+                          child: ElevatedButton(
+                              onPressed: () => print("NEW"),
+                              child: Text("Connect"))),
                     ])),
               ],
             )),
